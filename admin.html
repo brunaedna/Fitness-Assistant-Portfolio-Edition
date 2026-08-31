@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Assistant Portfolio Edition · Quality Center</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header>
+      <div><p class="eyebrow">Fitness Assistant Portfolio Edition</p><h1>Central de qualidade</h1><p>Perguntas anônimas não respondidas e avaliações autorizadas. <span id="dataSource">Fonte local</span>.</p></div>
+      <a href="./?profile=admin-preview">Abrir chatbot</a>
+    </header>
+    <section class="stats" aria-label="Resumo">
+      <article><strong id="openCount">0</strong><span>perguntas abertas</span></article>
+      <article><strong id="negativeCount">0</strong><span>avaliações negativas</span></article>
+      <article><strong id="positiveRate">—</strong><span>aprovação</span></article>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>Perguntas sem resposta</h2><p>Dados físicos, telefones e e-mails são removidos antes do armazenamento.</p></div><button id="exportData" type="button">Exportar JSON</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Pergunta anonimizada</th><th>Tópico</th><th>Idioma</th><th>Ocorrências</th><th>Status</th><th>Data</th><th></th></tr></thead><tbody id="unansweredBody"></tbody></table></div>
+      <p class="empty" id="unansweredEmpty">Nenhuma pergunta aberta.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>Avaliações das respostas</h2><p>Use as avaliações negativas para priorizar melhorias do motor offline.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Avaliação</th><th>Pergunta anonimizada</th><th>Tópico</th><th>Fonte</th><th>Confiança</th></tr></thead><tbody id="ratingsBody"></tbody></table></div>
+      <p class="empty" id="ratingsEmpty">Nenhuma resposta foi avaliada.</p>
+    </section>
+  </main>
+  <script src="admin.js"></script>
+</body>
+</html>
+

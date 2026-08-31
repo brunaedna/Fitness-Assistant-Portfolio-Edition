@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#151515">
+  <title>Fitness Assistant Portfolio Edition — Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="portfolio-shell" aria-label="Fitness Assistant Portfolio Edition demo">
+    <div class="background-shade"></div>
+
+    <section class="chat-modal" id="chatModal" role="dialog" aria-modal="true" aria-labelledby="chatTitle">
+      <header class="chat-header">
+        <div class="avatar" aria-hidden="true">
+          <span class="avatar-monogram">FA</span>
+        </div>
+        <div class="title-wrap">
+          <h2 id="chatTitle">Fitness Assistant Portfolio Edition</h2>
+          <p>Training · Nutrition · Weight Loss · Muscle Building</p>
+        </div>
+        <div class="privacy-shortcuts header-privacy">
+          <button id="managePrivacyButton" type="button">Manage privacy</button>
+          <button id="deleteDataButton" type="button">Delete my data</button>
+        </div>
+        <button class="modal-close" id="closeChat" type="button" aria-label="Close chatbot">×</button>
+      </header>
+
+      <nav class="quick-chips" aria-label="Quick fitness topics">
+        <button type="button" data-prompt="How can I lose weight without losing muscle?">Weight Loss</button>
+        <button type="button" data-prompt="How can I build muscle effectively?">Muscle Building</button>
+        <button type="button" data-prompt="How much protein do I need each day?">Protein</button>
+        <button type="button" data-prompt="Give me an effective chest workout.">Chest</button>
+        <button type="button" data-prompt="What foods should I prioritize for my fitness goals?">Food</button>
+        <button type="button" data-prompt="How can I manage food cravings?">Cravings</button>
+        <button type="button" data-prompt="How should a beginner start at the gym?">Gym</button>
+        <button type="button" data-prompt="How can I improve my sports performance?">Sport</button>
+      </nav>
+
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+
+      <footer class="composer">
+        <form id="chatForm" autocomplete="off">
+          <label class="sr-only" for="messageInput">Ask the fitness bot</label>
+          <input id="messageInput" name="message" type="text" maxlength="500"
+                 placeholder="Ask me, e.g. How can I lose weight?" aria-describedby="medicalNote">
+          <button id="sendButton" type="submit">Send</button>
+        </form>
+        <p id="medicalNote">Educational information only — it does not replace evaluation, diagnosis or follow-up by a qualified health or fitness professional.</p>
+      </footer>
+    </section>
+
+    <button class="reopen-chat" id="reopenChat" type="button" hidden>
+      <span aria-hidden="true">●</span> Open Fitness Bot
+    </button>
+
+  </main>
+  <script src="consent-manager.js"></script>
+  <script src="safety-engine.js"></script>
+  <script src="intent-engine.js"></script>
+  <script src="exercise-database.js"></script>
+  <script src="nutrition-engine.js"></script>
+  <script src="periodization-engine.js"></script>
+  <script src="ai-provider-adapter.js"></script>
+  <script src="catalog-engine.js"></script>
+  <script src="knowledge-engine.js"></script>
+  <script src="dialogue-engine.js"></script>
+  <script src="quality-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
