@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#151515">
-  <title>Fitness Assistant Portfolio Edition — Prototype</title>
+  <meta name="theme-color" content="#6652f3">
+  <meta name="description" content="Assistente fitness bilíngue com orientação educativa, privacidade e motor inteligente local.">
+  <title>Fitness Assistant — Bruna Portfolio</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,6 +21,8 @@
           <h2 id="chatTitle">Fitness Assistant Portfolio Edition</h2>
           <p>Training · Nutrition · Weight Loss · Muscle Building</p>
         </div>
+        <button class="language-trigger" id="languageButton" type="button" aria-label="Alterar idioma">PT</button>
+        <button class="project-info-trigger" id="howItWorksButton" type="button">Como funciona</button>
         <div class="privacy-shortcuts header-privacy">
           <button id="managePrivacyButton" type="button">Manage privacy</button>
           <button id="deleteDataButton" type="button">Delete my data</button>
@@ -54,6 +57,60 @@
     <button class="reopen-chat" id="reopenChat" type="button" hidden>
       <span aria-hidden="true">●</span> Open Fitness Bot
     </button>
+
+    <section class="language-gate" id="languageGate" role="dialog" aria-modal="true" aria-labelledby="languageTitle">
+      <div class="language-card">
+        <div class="language-mark" aria-hidden="true">FA</div>
+        <p class="eyebrow">FITNESS ASSISTANT</p>
+        <h1 id="languageTitle">Escolha seu idioma</h1>
+        <p>Choose your language to personalize the experience.</p>
+        <div class="language-actions">
+          <button type="button" data-language="pt"><span>🇧🇷</span> Português</button>
+          <button type="button" data-language="en"><span>🇺🇸</span> English</button>
+        </div>
+        <small>A preferência fica salva neste navegador e pode ser alterada no topo do assistente.</small>
+      </div>
+    </section>
+
+    <section class="info-overlay" id="projectInfoOverlay" role="dialog" aria-modal="true" aria-labelledby="projectInfoTitle" hidden>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div>
+            <p class="eyebrow" id="projectInfoEyebrow">VISÃO DO PROJETO</p>
+            <h2 id="projectInfoTitle">Como o Fitness Assistant funciona</h2>
+          </div>
+          <button id="closeProjectInfo" type="button" aria-label="Fechar">×</button>
+        </div>
+
+        <div class="info-language-panel" data-info-language="pt">
+          <p class="info-lead">O assistente transforma perguntas sobre treino, nutrição e hábitos em orientações educativas e personalizadas.</p>
+          <div class="info-flow" aria-label="Fluxo do projeto">
+            <span>1. Entende o pedido</span><b>→</b><span>2. Aplica contexto</span><b>→</b><span>3. Valida segurança</span><b>→</b><span>4. Responde</span>
+          </div>
+          <div class="info-grid">
+            <article><strong>Motor local</strong><p>Planos, cálculos e recomendações usam uma base estruturada que funciona mesmo sem uma IA externa.</p></article>
+            <article><strong>Personalização</strong><p>Objetivo, experiência, equipamentos e limitações informadas ajustam as próximas respostas.</p></article>
+            <article><strong>Privacidade</strong><p>O perfil autorizado permanece no navegador; a conversa é temporária e pode ser apagada pelo visitante.</p></article>
+            <article><strong>Segurança</strong><p>Sinais de risco interrompem recomendações comuns e orientam a busca por um profissional qualificado.</p></article>
+          </div>
+          <p class="info-note"><strong>Próxima etapa:</strong> Gemini e Groq poderão complementar o motor local somente após consentimento, por uma conexão protegida no servidor. As chaves nunca ficam no navegador.</p>
+        </div>
+
+        <div class="info-language-panel" data-info-language="en" hidden>
+          <p class="info-lead">The assistant turns questions about training, nutrition, and habits into educational, personalized guidance.</p>
+          <div class="info-flow" aria-label="Project flow">
+            <span>1. Understands</span><b>→</b><span>2. Adds context</span><b>→</b><span>3. Checks safety</span><b>→</b><span>4. Responds</span>
+          </div>
+          <div class="info-grid">
+            <article><strong>Local engine</strong><p>Plans, calculations, and recommendations use structured knowledge that works without external AI.</p></article>
+            <article><strong>Personalization</strong><p>Goals, experience, equipment, and limitations shape the next answers.</p></article>
+            <article><strong>Privacy</strong><p>An authorized profile stays in the browser; conversations are temporary and can be deleted.</p></article>
+            <article><strong>Safety</strong><p>Risk signals pause regular guidance and recommend support from a qualified professional.</p></article>
+          </div>
+          <p class="info-note"><strong>Next step:</strong> Gemini and Groq can complement the local engine only with consent, through a protected server connection. API keys never reach the browser.</p>
+        </div>
+      </div>
+    </section>
 
   </main>
   <script src="consent-manager.js"></script>

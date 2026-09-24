@@ -3,7 +3,26 @@
 
   const PROFILE_STORAGE_PREFIX = "fitness-assistant-fitness-profile-v3:";
   const VISITOR_SESSION_KEY = "fitness-assistant-fitness-visitor-v3";
-  const initialMessage = "Hi, I am your Fitness Assistant Portfolio Edition. Ask me for example: “How can I lose weight?”, “How much protein do I need?”, “How can I build muscle?”, or “How can I improve my football dribbling?”";
+  const UI_LANGUAGE_KEY = "fitness-assistant-ui-language-v1";
+
+  function readUiLanguage() {
+    try {
+      const language = localStorage.getItem(UI_LANGUAGE_KEY);
+      return ["pt", "en"].includes(language) ? language : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function initialMessageFor(language) {
+    return language === "pt"
+      ? "Olá! Sou o Fitness Assistant. Posso ajudar com treino, nutrição, emagrecimento, hipertrofia e desempenho esportivo. O que você quer melhorar hoje?"
+      : "Hi! I am your Fitness Assistant. I can help with training, nutrition, weight loss, muscle building, and sports performance. What would you like to improve today?";
+  }
+
+  let uiLanguage = readUiLanguage() || browserLanguage();
+  if (!["pt", "en"].includes(uiLanguage)) uiLanguage = "en";
+  const initialMessage = initialMessageFor(uiLanguage);
 
   const emptyProfile = () => ({
     name: null,
@@ -90,6 +109,12 @@
     deleteData: document.querySelector("#deleteDataButton"),
     close: document.querySelector("#closeChat"),
     reopen: document.querySelector("#reopenChat"),
+    languageGate: document.querySelector("#languageGate"),
+    languageButton: document.querySelector("#languageButton"),
+    languageChoices: [...document.querySelectorAll("[data-language]")],
+    howItWorks: document.querySelector("#howItWorksButton"),
+    projectInfo: document.querySelector("#projectInfoOverlay"),
+    closeProjectInfo: document.querySelector("#closeProjectInfo"),
     chips: [...document.querySelectorAll(".quick-chips button")]
   };
 
@@ -113,13 +138,14 @@
         }
       }
     } catch (_) {}
+    if (["pt", "en"].includes(uiLanguage)) profile.preferredLanguage = uiLanguage;
     return {
       conversationId: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
       messages: [{ role: "bot", text: initialMessage, timestamp: Date.now() }],
       profile,
       lastTopic: null,
       lastWorkoutGroup: null,
-      lastLanguage: profile.preferredLanguage || null,
+      lastLanguage: profile.preferredLanguage || uiLanguage,
       lastArtifact: null,
       artifactHistory: [],
       lastArtifactVersion: 0,
@@ -371,7 +397,7 @@
     appendMessageContent(bubble, text, media, role === "bot" ? payload.quality : null, role === "bot");
     const meta = document.createElement("span");
     meta.className = "message-meta";
-    meta.textContent = `${role === "bot" ? "Fitness Bot" : "You"} · ${formatTime(timestamp)}`;
+    meta.textContent = `${role === "bot" ? "Fitness Bot" : uiLanguage === "pt" ? "Você" : "You"} · ${formatTime(timestamp)}`;
     bubble.append(meta);
     row.append(bubble);
     els.messages.append(row);
@@ -396,7 +422,7 @@
       appendMessageContent(bubble, text, media, role === "bot" ? quality : null, role === "bot");
       const meta = document.createElement("span");
       meta.className = "message-meta";
-      meta.textContent = `${role === "bot" ? "Fitness Bot" : "You"} · ${formatTime(timestamp)}`;
+      meta.textContent = `${role === "bot" ? "Fitness Bot" : uiLanguage === "pt" ? "Você" : "You"} · ${formatTime(timestamp)}`;
       bubble.append(meta);
       row.append(bubble);
       els.messages.append(row);
@@ -446,6 +472,93 @@
   function browserLanguage() {
     const code = String(navigator.language || "en").slice(0, 2).toLowerCase();
     return ["pt", "en", "de", "es"].includes(code) ? code : "en";
+  }
+
+  function applyInterfaceLanguage(language, { persist = true, replaceWelcome = true } = {}) {
+    const lang = language === "pt" ? "pt" : "en";
+    uiLanguage = lang;
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+    document.body.dataset.uiLanguage = lang;
+    state.lastLanguage = lang;
+    state.profile.preferredLanguage = lang;
+
+    if (persist) {
+      try { localStorage.setItem(UI_LANGUAGE_KEY, lang); } catch (_) {}
+    }
+
+    const copy = {
+      pt: {
+        title: "Fitness Assistant Portfolio Edition",
+        subtitle: "Treino · Nutrição · Emagrecimento · Hipertrofia",
+        how: "Como funciona",
+        manage: "Gerenciar privacidade",
+        remove: "Apagar meus dados",
+        reopen: "Abrir Fitness Bot",
+        eyebrow: "VISÃO DO PROJETO",
+        infoTitle: "Como o Fitness Assistant funciona",
+        chips: [
+          ["Emagrecimento", "Como posso emagrecer sem perder massa muscular?"],
+          ["Hipertrofia", "Como posso ganhar massa muscular de forma eficiente?"],
+          ["Proteína", "Quanta proteína preciso por dia?"],
+          ["Peito", "Monte um treino eficiente para peito."],
+          ["Alimentação", "Quais alimentos devo priorizar para meu objetivo?"],
+          ["Compulsão", "Como posso controlar a vontade de comer?"],
+          ["Academia", "Como uma pessoa iniciante deve começar na academia?"],
+          ["Esporte", "Como posso melhorar meu desempenho esportivo?"]
+        ]
+      },
+      en: {
+        title: "Fitness Assistant Portfolio Edition",
+        subtitle: "Training · Nutrition · Weight Loss · Muscle Building",
+        how: "How it works",
+        manage: "Manage privacy",
+        remove: "Delete my data",
+        reopen: "Open Fitness Bot",
+        eyebrow: "PROJECT OVERVIEW",
+        infoTitle: "How the Fitness Assistant works",
+        chips: [
+          ["Weight Loss", "How can I lose weight without losing muscle?"],
+          ["Muscle Building", "How can I build muscle effectively?"],
+          ["Protein", "How much protein do I need each day?"],
+          ["Chest", "Give me an effective chest workout."],
+          ["Food", "What foods should I prioritize for my fitness goals?"],
+          ["Cravings", "How can I manage food cravings?"],
+          ["Gym", "How should a beginner start at the gym?"],
+          ["Sport", "How can I improve my sports performance?"]
+        ]
+      }
+    }[lang];
+
+    document.querySelector("#chatTitle").textContent = copy.title;
+    document.querySelector(".title-wrap p").textContent = copy.subtitle;
+    if (els.howItWorks) els.howItWorks.textContent = copy.how;
+    if (els.languageButton) {
+      els.languageButton.textContent = lang.toUpperCase();
+      els.languageButton.setAttribute("aria-label", lang === "pt" ? "Alterar idioma" : "Change language");
+    }
+    if (els.managePrivacy) els.managePrivacy.textContent = copy.manage;
+    if (els.deleteData) els.deleteData.textContent = copy.remove;
+    if (els.reopen) els.reopen.innerHTML = `<span aria-hidden="true">●</span> ${copy.reopen}`;
+    document.querySelector("#projectInfoEyebrow").textContent = copy.eyebrow;
+    document.querySelector("#projectInfoTitle").textContent = copy.infoTitle;
+    document.querySelectorAll("[data-info-language]").forEach(panel => { panel.hidden = panel.dataset.infoLanguage !== lang; });
+
+    els.chips.forEach((chip, index) => {
+      const item = copy.chips[index];
+      if (!item) return;
+      chip.textContent = item[0];
+      chip.dataset.prompt = item[1];
+    });
+
+    if (replaceWelcome && state.messages.length === 1 && state.messages[0]?.role === "bot") {
+      const welcome = initialMessageFor(lang);
+      state.messages[0].text = welcome;
+      state.lastBotAnswer = welcome;
+    }
+    updateMedicalNote(lang);
+    renderHistory();
+    renderConsentCard();
+    saveState();
   }
 
   function detectLanguage(text, fallback = browserLanguage()) {
@@ -2603,6 +2716,11 @@
         { title:"Datenschutz · Schritt 2 von 3", question:"Dürfen unbeantwortete Fragen anonym zur Verbesserung erfasst werden?", detail:"Der Eintrag ist anonym, enthält nicht den vollständigen Chat und identifiziert den Besucher nicht.", labels:["Anonyme Verbesserung erlauben","Nicht erlauben"] },
         { title:"Datenschutz · Schritt 3 von 3", question:"Erlaubst du Antworten durch externe KI?", detail:"Bei Zustimmung gehen die aktuelle Nachricht, bis zu 10 frühere Nachrichten und nur nötige Profilfelder an Groq oder Gemini. Bei Ablehnung bleibt der Offline-Motor aktiv.", labels:["Groq und Gemini erlauben","Nur offline fortfahren"] }
       ]
+    })[lang] || ({
+      pt: [],
+      en: [
+        { title:"Privacy · step 1 of 3", question:"How should your profile data be stored?", detail:"The profile may include age, height, weight, goals, and preferences. Full conversations remain temporary.", labels:["Save for future visits","Use this session only"] }
+      ]
     }).en;
     const step = copy[stepIndex] || copy[0];
     const row = document.createElement("div");
@@ -2669,7 +2787,7 @@
     if (current.wizardCompleted === true) {
       const cancel = document.createElement("button");
       cancel.type = "button";
-      cancel.textContent = "Cancel";
+      cancel.textContent = localized({ pt:"Cancelar", en:"Cancel" }, lang);
       cancel.addEventListener("click", () => { privacyWizardStep = null; renderConsentCard(); });
       actions.append(cancel);
     }
@@ -2681,16 +2799,22 @@
 
   function updateMedicalNote(lang) {
     els.input.setAttribute("aria-describedby", "medicalNote");
-    document.querySelector("#medicalNote").textContent = "Educational information — not a substitute for evaluation, diagnosis, or follow-up by a physician, dietitian, physiotherapist, fitness professional, or other qualified professional.";
+    document.querySelector("#medicalNote").textContent = localized({
+      pt: "Conteúdo educativo — não substitui avaliação, diagnóstico ou acompanhamento de profissionais qualificados.",
+      en: "Educational information — not a substitute for evaluation, diagnosis, or follow-up by qualified professionals."
+    }, lang);
     els.input.placeholder = localized({ pt:"Pergunte, por exemplo: como posso emagrecer?", en:"Ask me, e.g. How can I lose weight?", es:"Pregunta, por ejemplo: ¿cómo puedo adelgazar?", de:"Frage zum Beispiel: Wie kann ich gesund abnehmen?" }, lang);
     if (!isLoading) els.send.textContent = localized({ pt:"Enviar", en:"Send", es:"Enviar", de:"Senden" }, lang);
-    if (els.managePrivacy) els.managePrivacy.textContent = "Manage privacy";
-    if (els.deleteData) els.deleteData.textContent = "Delete my data";
+    if (els.managePrivacy) els.managePrivacy.textContent = localized({ pt:"Gerenciar privacidade", en:"Manage privacy" }, lang);
+    if (els.deleteData) els.deleteData.textContent = localized({ pt:"Apagar meus dados", en:"Delete my data" }, lang);
   }
 
   function deleteVisitorData() {
     const lang = state.lastLanguage || state.profile.preferredLanguage || browserLanguage();
-    const confirmed = window.confirm("Delete this visitor's saved profile, privacy choices, and temporary conversation? This cannot be undone.");
+    const confirmed = window.confirm(localized({
+      pt: "Apagar o perfil salvo, as escolhas de privacidade e a conversa temporária? Esta ação não pode ser desfeita.",
+      en: "Delete this visitor's saved profile, privacy choices, and temporary conversation? This cannot be undone."
+    }, lang));
     if (!confirmed) return;
     localStorage.removeItem(profileStorageKey);
     sessionStorage.removeItem(profileSessionKey);
@@ -2709,7 +2833,7 @@
     renderHistory();
     updateMedicalNote(lang);
     renderConsentCard();
-    window.alert("Your data has been deleted.");
+    window.alert(localized({ pt:"Seus dados foram apagados.", en:"Your data has been deleted." }, lang));
   }
 
   function downloadJson(filename, data) {
@@ -2915,13 +3039,38 @@
     privacyWizardStep = 0;
     renderConsentCard();
   });
+  els.languageChoices.forEach(button => button.addEventListener("click", () => {
+    els.languageGate.hidden = true;
+    applyInterfaceLanguage(button.dataset.language, { persist: true, replaceWelcome: true });
+    els.input.focus();
+  }));
+  els.languageButton?.addEventListener("click", () => {
+    els.languageGate.hidden = false;
+    els.languageGate.querySelector(`[data-language="${uiLanguage}"]`)?.focus();
+  });
+  els.howItWorks?.addEventListener("click", () => {
+    els.projectInfo.hidden = false;
+    els.closeProjectInfo.focus();
+  });
+  els.closeProjectInfo?.addEventListener("click", () => {
+    els.projectInfo.hidden = true;
+    els.howItWorks.focus();
+  });
+  els.projectInfo?.addEventListener("click", event => {
+    if (event.target === els.projectInfo) els.closeProjectInfo.click();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !els.projectInfo.hidden) els.closeProjectInfo.click();
+  });
 
-  renderHistory();
-  updateMedicalNote(state.lastLanguage || state.profile.preferredLanguage || browserLanguage());
-  renderConsentCard();
+  applyInterfaceLanguage(uiLanguage, { persist: Boolean(readUiLanguage()), replaceWelcome: true });
+  els.languageGate.hidden = Boolean(readUiLanguage());
   // This same-origin status check consumes no provider quota and exposes no key.
   probeExternalAI();
-  setTimeout(() => els.input.focus(), 250);
+  setTimeout(() => {
+    if (!els.languageGate.hidden) els.languageGate.querySelector("[data-language]")?.focus();
+    else els.input.focus();
+  }, 250);
 })();
 
 
