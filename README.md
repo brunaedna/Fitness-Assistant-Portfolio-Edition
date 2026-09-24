@@ -46,3 +46,14 @@ The application provides educational information only. It does not diagnose cond
 ## Before publishing a live demo
 
 Keep provider credentials on a server-side function, enable rate limiting, and do not place API keys in browser JavaScript.
+
+## Deploy on Cloudflare Workers
+
+The Cloudflare deployment uses `worker.js` as a server-side Groq/Gemini gateway and serves the static interface from `dist/`.
+
+1. Set the build command to `npm run build`.
+2. Set the deploy command to `npx wrangler deploy`.
+3. Add `GROQ_API_KEY` and `GEMINI_API_KEY` as encrypted runtime secrets in the Cloudflare project settings.
+4. Deploy again. The browser can verify configuration at `/api/status` without revealing either key.
+
+The provider order is Groq first and Gemini second. If both are unavailable or their free quotas are exhausted, the existing deterministic local knowledge engine remains the final fallback.
