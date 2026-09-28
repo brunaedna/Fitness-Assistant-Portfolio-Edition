@@ -1,59 +1,60 @@
-# Fitness Assistant Portfolio Edition
+# Fitness Assistant — Portfolio Edition
 
-A privacy-aware fitness chatbot portfolio project with contextual follow-ups, multilingual responses, structured workout and nutrition guidance, deterministic calculations, and optional AI-provider integration.
+O **Fitness Assistant** é um assistente virtual educativo voltado a treinos, alimentação, recuperação e hábitos saudáveis. Ele interpreta a pergunta do usuário, considera seu contexto e produz orientações claras e personalizadas, sempre respeitando limites de segurança.
 
-## Portfolio status
+**Aplicação:** [fitness-assistant.brunaedna68.workers.dev](https://fitness-assistant.brunaedna68.workers.dev/)
 
-This repository is an independent, sanitized portfolio edition:
+## Principais recursos
 
-- no company branding, logos, domains, IP addresses, or production infrastructure;
-- no former-company background or scene assets;
-- no proprietary exercise or sports images;
-- no real profiles, conversations, review records, credentials, or API keys;
-- no affiliation with a former employer or client.
+- Atendimento em português e inglês.
+- Sugestões de exercícios, treinos, alimentação, hidratação e recuperação.
+- Respostas contextuais de acordo com objetivo, experiência e preferências do usuário.
+- Base determinística própria com 2.500 registros organizados em oito temas.
+- Integração opcional com as APIs Groq e Google Gemini.
+- Mecanismos de segurança para situações que envolvam dor, lesões ou riscos à saúde.
+- Consentimento explícito antes do envio de informações para serviços externos de IA.
+- Controles para gerenciar e excluir os dados locais da sessão.
 
-Visual exercise assets are intentionally omitted until independently licensed replacements are available.
+## Como funciona
 
-## Run locally
+Cada mensagem passa por módulos de identificação de intenção, contexto, segurança e qualidade. O sistema utiliza primeiro seus mecanismos locais e pode recorrer à Groq ou ao Gemini para complementar a resposta quando houver consentimento e uma API configurada. Se os serviços externos não estiverem disponíveis, o assistente continua funcionando com o mecanismo local.
 
-Python 3.10 or newer is recommended.
+## Tecnologias utilizadas
+
+- HTML5, CSS3 e JavaScript com módulos ES.
+- Cloudflare Workers para hospedagem e API segura no servidor.
+- Wrangler para desenvolvimento e implantação.
+- Groq API e Google Gemini API para recursos opcionais de IA.
+- Mecanismos próprios para intenção, exercícios, nutrição, periodização, segurança e privacidade.
+- Node.js para o processo de build.
+
+## Executar localmente
 
 ```bash
-python server.py
+npm install
 ```
 
-Then open `http://localhost:4173`.
+Copie o arquivo `.env.example` para `.env` e, caso queira testar os provedores externos, informe `GROQ_API_KEY` e/ou `GEMINI_API_KEY`. As chaves são opcionais porque existe um mecanismo local de resposta.
 
-The deterministic local engine works without API keys. To try optional providers, copy `.env.example` to `.env`, keep that file private, and add your own credentials.
+Em seguida, execute:
 
-## Highlights
+```bash
+npm run dev
+```
 
-- conversational state and contextual follow-ups;
-- separated visitor profiles and temporary session memory;
-- workout, nutrition, protein, hydration, recovery, and sports topics;
-- weekly and periodized plan generation;
-- BMI, calorie, protein, and hydration calculations;
-- Portuguese, English, Spanish, German, French, Italian, and Turkish support;
-- privacy controls and data deletion;
-- safety handling for pain, injuries, medical-risk questions, and minors;
-- optional Groq and Gemini integration with local fallback;
-- safe table rendering and Markdown cleanup.
+## Implantação
 
-## Safety
+```bash
+npm run build
+npx wrangler deploy
+```
 
-The application provides educational information only. It does not diagnose conditions or replace qualified medical, nutrition, physiotherapy, or fitness professionals.
+As chaves de API usadas em produção devem ser cadastradas como segredos do Cloudflare Worker e nunca enviadas ao repositório ou ao navegador.
 
-## Before publishing a live demo
+## Aviso importante
 
-Keep provider credentials on a server-side function, enable rate limiting, and do not place API keys in browser JavaScript.
+O Fitness Assistant possui finalidade educativa e não substitui avaliação médica, nutricional ou profissional. Esta versão foi desenvolvida como projeto independente de portfólio, sem dados, credenciais ou materiais proprietários de empresas ou clientes.
 
-## Deploy on Cloudflare Workers
+## Autoria
 
-The Cloudflare deployment uses `worker.js` as a server-side Groq/Gemini gateway and serves the static interface from `dist/`.
-
-1. Set the build command to `npm run build`.
-2. Set the deploy command to `npx wrangler deploy`.
-3. Add `GROQ_API_KEY` and `GEMINI_API_KEY` as encrypted runtime secrets in the Cloudflare project settings.
-4. Deploy again. The browser can verify configuration at `/api/status` without revealing either key.
-
-The provider order is Groq first and Gemini second. If both are unavailable or their free quotas are exhausted, the existing deterministic local knowledge engine remains the final fallback.
+Desenvolvido por **Bruna Edna Martins Ferreira**.
