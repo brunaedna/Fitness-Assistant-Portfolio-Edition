@@ -1,98 +1,19 @@
 (() => {
   "use strict";
 
-  const PROFILE_STORAGE_PREFIX = "fitness-assistant-fitness-profile-v3:";
-  const VISITOR_SESSION_KEY = "fitness-assistant-fitness-visitor-v3";
-  const UI_LANGUAGE_KEY = "fitness-assistant-ui-language-v1";
-
-  function readUiLanguage() {
-    try {
-      const language = localStorage.getItem(UI_LANGUAGE_KEY);
-      return ["pt", "en"].includes(language) ? language : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function initialMessageFor(language) {
-    return language === "pt"
-      ? "Olá! Sou o Fitness Assistant. Posso ajudar com treino, nutrição, emagrecimento, hipertrofia e desempenho esportivo. O que você quer melhorar hoje?"
-      : "Hi! I am your Fitness Assistant. I can help with training, nutrition, weight loss, muscle building, and sports performance. What would you like to improve today?";
-  }
+  const {
+    PROFILE_STORAGE_PREFIX,
+    UI_LANGUAGE_KEY,
+    readUiLanguage,
+    initialMessageFor,
+    emptyProfile,
+    sanitizeProfile,
+    resolveVisitorId,
+  } = window.FitnessProfileManager;
 
   let uiLanguage = readUiLanguage() || browserLanguage();
   if (!["pt", "en"].includes(uiLanguage)) uiLanguage = "en";
   const initialMessage = initialMessageFor(uiLanguage);
-
-  const emptyProfile = () => ({
-    name: null,
-    preferredLanguage: null,
-    age: null,
-    heightCm: null,
-    weightKg: null,
-    sex: null,
-    activity: null,
-    goal: null,
-    targetLossKg: null,
-    dietNotes: [],
-    allergies: [],
-    equipment: null,
-    experience: null,
-    limitations: [],
-    durationMinutes: null,
-    trainingDays: null,
-    primarySport: null
-  });
-
-  function sanitizeProfile(candidate) {
-    const source = candidate && typeof candidate === "object" ? candidate : {};
-    const profile = emptyProfile();
-    if (typeof source.name === "string" && /^[\p{L}'’ -]{2,31}$/u.test(source.name.trim())) profile.name = source.name.trim();
-    if (["pt", "en", "es", "de"].includes(source.preferredLanguage)) profile.preferredLanguage = source.preferredLanguage;
-    if (Number.isInteger(source.age) && source.age >= 14 && source.age <= 99) profile.age = source.age;
-    if (Number.isFinite(source.heightCm) && source.heightCm >= 130 && source.heightCm <= 220) profile.heightCm = source.heightCm;
-    if (Number.isFinite(source.weightKg) && source.weightKg >= 35 && source.weightKg <= 250) profile.weightKg = source.weightKg;
-    if (["female", "male"].includes(source.sex)) profile.sex = source.sex;
-    if (["sedentary", "light", "moderate", "very-active"].includes(source.activity)) profile.activity = source.activity;
-    if (["loss", "muscle"].includes(source.goal)) profile.goal = source.goal;
-    if (Number.isFinite(source.targetLossKg) && source.targetLossKg > 0 && source.targetLossKg <= 50) profile.targetLossKg = source.targetLossKg;
-    const allowedDietNotes = new Set(["frequent-junk-food", "vegan", "vegetarian", "lactose-free"]);
-    profile.dietNotes = Array.isArray(source.dietNotes) ? [...new Set(source.dietNotes.filter(item => allowedDietNotes.has(item)))].slice(0, 12) : [];
-    const allowedAllergies = new Set(["peanut", "milk", "egg", "fish", "soy", "gluten"]);
-    profile.allergies = Array.isArray(source.allergies) ? [...new Set(source.allergies.filter(item => allowedAllergies.has(item)))].slice(0, 12) : [];
-    if (["bodyweight", "dumbbells", "gym", "flexible"].includes(source.equipment)) profile.equipment = source.equipment;
-    if (["beginner", "intermediate", "advanced"].includes(source.experience)) profile.experience = source.experience;
-    const allowedLimitations = new Set(["knee", "back", "shoulder"]);
-    profile.limitations = Array.isArray(source.limitations) ? [...new Set(source.limitations.filter(item => allowedLimitations.has(item)))].slice(0, 8) : [];
-    if (Number.isFinite(source.durationMinutes) && source.durationMinutes >= 15 && source.durationMinutes <= 120) profile.durationMinutes = source.durationMinutes;
-    if (Number.isInteger(source.trainingDays) && source.trainingDays >= 2 && source.trainingDays <= 6) profile.trainingDays = source.trainingDays;
-    if (["football", "running", "basketball", "volleyball", "cycling", "swimming", "tennis"].includes(source.primarySport)) profile.primarySport = source.primarySport;
-    return profile;
-  }
-
-  function stableId(value) {
-    let hash = 2166136261;
-    for (const character of value) {
-      hash ^= character.charCodeAt(0);
-      hash = Math.imul(hash, 16777619);
-    }
-    return (hash >>> 0).toString(36);
-  }
-
-  function resolveVisitorId() {
-    const hostUserId = String(window.FITNESS_ASSISTANT_USER_ID || "").trim();
-    const previewProfile = new URLSearchParams(window.location.search).get("profile")?.trim();
-    if (hostUserId) return `account-${stableId(hostUserId)}`;
-    if (previewProfile) return `preview-${stableId(previewProfile)}`;
-
-    let anonymousId = sessionStorage.getItem(VISITOR_SESSION_KEY);
-    if (!anonymousId) {
-      anonymousId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-      sessionStorage.setItem(VISITOR_SESSION_KEY, anonymousId);
-    }
-    return `anonymous-${stableId(anonymousId)}`;
-  }
-
   const visitorId = resolveVisitorId();
   const profileStorageKey = `${PROFILE_STORAGE_PREFIX}${visitorId}`;
   const profileSessionKey = `${PROFILE_STORAGE_PREFIX}session:${visitorId}`;
@@ -220,169 +141,11 @@
     return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(timestamp);
   }
 
-  function cleanBotFormatting(value) {
-    let text = String(value ?? "");
-    // The modal intentionally renders safe plain text. Normalize common AI
-    // Markdown/LaTeX so their control characters never become visible noise.
-    text = text
-      .replace(/```(?:\w+)?\s*([\s\S]*?)```/g, "$1")
-      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
-      .replace(/__([^_\n]+)__/g, "$1")
-      .replace(/^\s{0,3}#{1,6}\s+/gm, "")
-      .replace(/`([^`\n]+)`/g, "$1")
-      .replace(/\\\[|\\\]|\\\(|\\\)/g, "")
-      .replace(/\{,\}/g, ",")
-      .replace(/\\(?:times|cdot)/g, "x")
-      .replace(/\\approx/g, "≈")
-      .replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, "$1")
-      .replace(/\^2\b/g, "²");
-    // A few passes cover ordinary, non-nested fractions produced by models.
-    for (let pass = 0; pass < 3; pass += 1) {
-      text = text.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1) / ($2)");
-    }
-    return text
-      .replace(/\\(?:left|right)\b/g, "")
-      .replace(/\\([a-zA-Z]+)\b/g, "$1")
-      .replace(/[ \t]+$/gm, "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  }
-
-  function tableCells(line) {
-    const trimmed = String(line || "").trim().replace(/^\|/, "").replace(/\|$/, "");
-    return trimmed.split("|").map(cell => cell.trim());
-  }
-
-  function isTableDivider(line) {
-    const cells = tableCells(line);
-    return cells.length >= 2 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
-  }
-
-  function appendSafeRichText(container, value) {
-    const lines = cleanBotFormatting(value).split("\n");
-    let plainLines = [];
-    const flushPlainText = () => {
-      if (!plainLines.length) return;
-      const block = document.createElement("div");
-      block.className = "message-text-block";
-      block.textContent = plainLines.join("\n").trim();
-      if (block.textContent) container.append(block);
-      plainLines = [];
-    };
-
-    for (let index = 0; index < lines.length; index += 1) {
-      const header = tableCells(lines[index]);
-      const beginsTable = lines[index].includes("|") && index + 1 < lines.length && isTableDivider(lines[index + 1]);
-      if (!beginsTable || header.length < 2) {
-        plainLines.push(lines[index]);
-        continue;
-      }
-
-      flushPlainText();
-      const tableWrap = document.createElement("div");
-      tableWrap.className = "bot-table-wrap";
-      tableWrap.setAttribute("role", "region");
-      tableWrap.setAttribute("aria-label", "Scrollable comparison table");
-      tableWrap.tabIndex = 0;
-      const table = document.createElement("table");
-      table.className = "bot-table";
-      const thead = document.createElement("thead");
-      const headingRow = document.createElement("tr");
-      header.forEach(label => {
-        const th = document.createElement("th");
-        th.scope = "col";
-        th.textContent = label;
-        headingRow.append(th);
-      });
-      thead.append(headingRow);
-      table.append(thead);
-
-      const tbody = document.createElement("tbody");
-      index += 2;
-      while (index < lines.length && lines[index].includes("|")) {
-        const cells = tableCells(lines[index]);
-        if (cells.length !== header.length || isTableDivider(lines[index])) break;
-        const row = document.createElement("tr");
-        cells.forEach(cellText => {
-          const td = document.createElement("td");
-          td.textContent = cellText;
-          row.append(td);
-        });
-        tbody.append(row);
-        index += 1;
-      }
-      index -= 1;
-      table.append(tbody);
-      tableWrap.append(table);
-      container.append(tableWrap);
-    }
-    flushPlainText();
-  }
-
   function appendMessageContent(bubble, text, media, quality = null, isBot = false) {
-    const body = document.createElement("div");
-    body.className = "message-text";
-    if (isBot) appendSafeRichText(body, text);
-    else body.textContent = text;
-    bubble.append(body);
-
-    const mediaItems = Array.isArray(media) ? media : media?.src ? [media] : [];
-    mediaItems.forEach(mediaItem => {
-      const figure = document.createElement("figure");
-      figure.className = "message-media";
-      const link = document.createElement("a");
-      link.href = mediaItem.src;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.title = mediaItem.openLabel || "Open larger image";
-      const image = document.createElement("img");
-      image.src = mediaItem.src;
-      image.alt = mediaItem.alt || "Fitness exercise reference";
-      image.loading = "lazy";
-      link.append(image);
-      figure.append(link);
-      if (mediaItem.caption) {
-        const caption = document.createElement("figcaption");
-        caption.textContent = mediaItem.caption;
-        figure.append(caption);
-      }
-      bubble.append(figure);
+    window.FitnessMessageRenderer.appendMessageContent(bubble, text, media, quality, isBot, {
+      onFollowUp: (followUp, action) => sendMessage(followUp, action),
+      onRate: (answerQuality, rating) => window.FitnessQualityEngine?.rate(answerQuality, rating),
     });
-
-    if (quality) {
-      const panel = document.createElement("div");
-      panel.className = "answer-quality";
-      const provenance = document.createElement("div");
-      provenance.className = "answer-provenance";
-      provenance.textContent = `${quality.source} · confiança ${quality.confidence}`;
-      panel.append(provenance);
-      if (quality.followUp) {
-        const followUp = document.createElement("button");
-        followUp.type = "button";
-        followUp.className = "answer-followup";
-        followUp.textContent = quality.followUp;
-        followUp.addEventListener("click", () => sendMessage(quality.followUp, quality.followUpAction));
-        panel.append(followUp);
-      }
-      const feedback = document.createElement("div");
-      feedback.className = "answer-feedback";
-      feedback.setAttribute("aria-label", "Avalie esta resposta");
-      [["up", "Útil", "👍"], ["down", "Não foi útil", "👎"]].forEach(([value, label, icon]) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.dataset.rating = value;
-        button.title = label;
-        button.setAttribute("aria-label", label);
-        button.textContent = icon;
-        button.addEventListener("click", () => {
-          window.FitnessQualityEngine?.rate(quality, value);
-          feedback.querySelectorAll("button").forEach(item => item.classList.toggle("selected", item === button));
-        });
-        feedback.append(button);
-      });
-      panel.append(feedback);
-      bubble.append(panel);
-    }
   }
 
   function addMessage(role, response, persist = true) {

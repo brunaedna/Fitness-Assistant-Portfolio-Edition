@@ -5,10 +5,33 @@ globalThis.window = {};
 await import("../nutrition-engine.js");
 await import("../periodization-engine.js");
 await import("../safety-engine.js");
+await import("../message-renderer.js");
+await import("../profile-manager.js");
 
 const nutrition = window.FitnessNutritionEngine;
 const periodization = window.FitnessPeriodizationEngine;
 const safety = window.FitnessSafetyEngine;
+const messageRenderer = window.FitnessMessageRenderer;
+const profileManager = window.FitnessProfileManager;
+
+test("remove dados de perfil fora das faixas permitidas", () => {
+  const profile = profileManager.sanitizeProfile({
+    name: "  Maria  ", age: 12, weightKg: 65, trainingDays: 9,
+    allergies: ["milk", "invalid", "milk"],
+  });
+  assert.equal(profile.name, "Maria");
+  assert.equal(profile.age, null);
+  assert.equal(profile.weightKg, 65);
+  assert.equal(profile.trainingDays, null);
+  assert.deepEqual(profile.allergies, ["milk"]);
+});
+
+test("limpa Markdown e LaTeX antes de renderizar respostas", () => {
+  assert.equal(
+    messageRenderer.cleanFormatting("## Resultado\n**Proteína:** \\frac{20}{2} g"),
+    "Resultado\nProteína: (20) / (2) g",
+  );
+});
 
 test("calcula os nutrientes de uma refeição por peso", () => {
   const result = nutrition.calculate([
