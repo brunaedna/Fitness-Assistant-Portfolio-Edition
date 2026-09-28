@@ -37,7 +37,13 @@
   };
   const foods = rows.map(([id,name,kcal,protein,carbs,fat,fiber,tags,allergens]) => ({ id,name,aliases:[name,...(multilingualAliases[id]||[])],state:/cooked|cozid/.test(id+name)?"cooked":"as-sold",per100g:{kcal,protein,carbs,fat,fiber},tags,allergens,source:"educational average; validate against production food table",version:VERSION }));
   const normalize = value => String(value||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const find = value => { const t=normalize(value); return foods.find(food => t.includes(normalize(food.name)) || food.aliases.some(alias=>t.includes(normalize(alias)))) || null; };
+  const find = value => {
+    const t=normalize(value).trim();
+    if(!t)return null;
+    const exact=foods.find(food=>t===normalize(food.id)||t===normalize(food.name)||food.aliases.some(alias=>t===normalize(alias)));
+    if(exact)return exact;
+    return foods.find(food=>[food.name,...food.aliases].some(label=>{const candidate=normalize(label);return candidate.length>=3&&t.includes(candidate);}))||null;
+  };
   function calculate(items) {
     const totals={kcal:0,protein:0,carbs:0,fat:0,fiber:0}; const resolved=[]; const missing=[];
     for(const item of items||[]){const food=find(item.id||item.name); const grams=Number(item.grams); if(!food||!grams){missing.push(item.name||item.id);continue;} const factor=grams/100; Object.keys(totals).forEach(key=>totals[key]+=food.per100g[key]*factor); resolved.push({foodId:food.id,name:food.name,grams});}
