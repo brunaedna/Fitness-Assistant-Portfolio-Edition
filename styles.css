@@ -419,3 +419,16 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 
+/* Cursor visual compartilhado com o portfólio. */
+.custom-cursor { position:fixed; z-index:99999; left:0; top:0; width:24px; height:24px; opacity:0; pointer-events:none; transform:translate3d(var(--cursor-x,-40px),var(--cursor-y,-40px),0) translate(-19%,-16%) rotate(-8deg); transition:opacity .16s ease,filter .18s ease; filter:drop-shadow(0 0 5px rgba(255,255,255,.8)) drop-shadow(0 0 13px rgba(126,101,255,.9)); will-change:transform; }
+.custom-cursor span { position:absolute; inset:2px 4px 3px 3px; display:block; clip-path:polygon(7% 0,100% 43%,61% 57%,46% 100%); background:linear-gradient(145deg,#fff 5%,#b7b1ff 48%,#6c86ff 100%); }
+.custom-cursor span::after { content:""; position:absolute; inset:3px; clip-path:inherit; background:linear-gradient(145deg,#7661ff,#252e73); opacity:.72; }
+.custom-cursor.visible { opacity:.95; }
+.custom-cursor.interactive { filter:drop-shadow(0 0 7px rgba(255,255,255,.95)) drop-shadow(0 0 18px rgba(94,130,255,1)); }
+.custom-cursor.pressed { transform:translate3d(var(--cursor-x,-40px),var(--cursor-y,-40px),0) translate(-19%,-16%) rotate(-8deg) scale(.78); }
+@media (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  html.custom-cursor-enabled, html.custom-cursor-enabled body, html.custom-cursor-enabled a, html.custom-cursor-enabled button { cursor:none; }
+}
+@media (pointer:coarse), (prefers-reduced-motion:reduce) {
+  .custom-cursor { display:none; }
+}

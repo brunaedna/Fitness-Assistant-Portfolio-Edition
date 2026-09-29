@@ -192,6 +192,50 @@
     }
   }
 
+  function responseSegments(value) {
+    return String(value || "").match(/\S+\s*|\s+/g) || [];
+  }
+
+  async function addMessageProgressively(response) {
+    const payload = typeof response === "string" ? { text: response } : response;
+    const text = String(payload.text || "");
+    const timestamp = Date.now();
+    const row = document.createElement("div");
+    row.className = "message bot streaming";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    const body = document.createElement("div");
+    body.className = "message-text message-stream";
+    body.setAttribute("aria-live", "off");
+    bubble.append(body);
+    row.append(bubble);
+    els.messages.append(row);
+    scrollToLatest();
+
+    const segments = responseSegments(text);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const interval = reduceMotion ? 0 : Math.max(12, Math.min(42, Math.round(1500 / Math.max(segments.length, 1))));
+    for (const segment of segments) {
+      body.textContent += segment;
+      scrollToLatest(false);
+      if (interval) await new Promise(resolve => setTimeout(resolve, interval));
+    }
+
+    bubble.textContent = "";
+    appendMessageContent(bubble, text, payload.media || null, payload.quality || null, true);
+    const meta = document.createElement("span");
+    meta.className = "message-meta";
+    meta.textContent = `Fitness Bot · ${formatTime(timestamp)}`;
+    bubble.append(meta);
+    row.classList.remove("streaming");
+
+    state.messages.push({ role: "bot", text, media: payload.media || null, quality: payload.quality || null, timestamp });
+    state.messages = state.messages.slice(-30);
+    state.lastBotAnswer = text;
+    saveState();
+    scrollToLatest(false);
+  }
+
   function renderHistory() {
     els.messages.textContent = "";
     state.messages.forEach(({ role, text, media, quality, timestamp }) => {
@@ -2658,9 +2702,9 @@
       if (enriched?.quality?.followUpAction && !state.lastBotOffer) {
         setBotOffer(enriched.quality.followUpAction, { source: "quality-followup", label: enriched.quality.followUp });
       }
-      addMessage("bot", enriched);
+      await addMessageProgressively(enriched);
     } catch (_) {
-      addMessage("bot", "Sorry, I could not prepare a response just now. Please try again.");
+      await addMessageProgressively("Sorry, I could not prepare a response just now. Please try again.");
     } finally {
       setLoading(false);
       els.input.focus();

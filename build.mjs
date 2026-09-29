@@ -9,6 +9,7 @@ const publicFiles = [
   "catalog-engine.js",
   "consent-manager.js",
   "conversation-utils.js",
+  "custom-cursor.js",
   "dialogue-engine.js",
   "exercise-database.js",
   "food-plan-utils.js",
