@@ -7,12 +7,38 @@ await import("../periodization-engine.js");
 await import("../safety-engine.js");
 await import("../message-renderer.js");
 await import("../profile-manager.js");
+await import("../conversation-utils.js");
+await import("../food-plan-utils.js");
 
 const nutrition = window.FitnessNutritionEngine;
 const periodization = window.FitnessPeriodizationEngine;
 const safety = window.FitnessSafetyEngine;
 const messageRenderer = window.FitnessMessageRenderer;
 const profileManager = window.FitnessProfileManager;
+const conversation = window.FitnessConversationUtils;
+const foodPlan = window.FitnessFoodPlanUtils;
+
+test("normaliza texto, interpreta duração e detecta idioma", () => {
+  assert.equal(conversation.normalize("Proteína e AÇÃO"), "proteina e acao");
+  assert.equal(conversation.parseDurationMinutes("Tenho 1,5 horas"), 90);
+  assert.equal(conversation.detectLanguage("How much protein do I need?", "pt"), "en");
+  assert.equal(conversation.detectLanguage("Quanta proteína preciso?", "en"), "pt");
+});
+
+test("canoniza pedidos multilíngues sem alterar a intenção", () => {
+  assert.equal(
+    conversation.canonicalizeForRouting("Create a weekly workout plan without equipment", "en"),
+    "monte a plano semanal de treino sem equipamento",
+  );
+  assert.equal(conversation.detectSport("Quero melhorar no futebol"), "football");
+});
+
+test("calcula porções e totais do plano alimentar", () => {
+  const foods = foodPlan.splitFoods("frango, arroz e salada");
+  assert.equal(foods.length, 3);
+  assert.deepEqual(foodPlan.mealTotals(foods), { kcal: 405, protein: 42 });
+  assert.match(foodPlan.formatGramMeal("Almoço", foods), /frango 120 g/);
+});
 
 test("remove dados de perfil fora das faixas permitidas", () => {
   const profile = profileManager.sanitizeProfile({

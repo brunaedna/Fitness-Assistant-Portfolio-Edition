@@ -19,6 +19,20 @@ O **Fitness Assistant** é um assistente virtual educativo voltado a treinos, al
 
 Cada mensagem passa por módulos de identificação de intenção, contexto, segurança e qualidade. O sistema utiliza primeiro seus mecanismos locais e pode recorrer à Groq ou ao Gemini para complementar a resposta quando houver consentimento e uma API configurada. Se os serviços externos não estiverem disponíveis, o assistente continua funcionando com o mecanismo local.
 
+## Organização do código
+
+O `app.js` coordena a interface e o fluxo da conversa. As responsabilidades independentes ficam isoladas em módulos próprios:
+
+- `conversation-utils.js`: normalização, idioma, duração e roteamento multilíngue;
+- `food-plan-utils.js`: porções e totais de estruturas alimentares;
+- `nutrition-engine.js`: composição nutricional baseada na base local;
+- `periodization-engine.js`: criação e adaptação de ciclos de treino;
+- `safety-engine.js`: classificação de risco e bloqueio de respostas inseguras;
+- `profile-manager.js`: validação e isolamento dos dados do visitante;
+- `intent-engine.js`, `dialogue-engine.js` e `knowledge-engine.js`: interpretação e continuidade da conversa.
+
+As regras puras podem ser testadas sem navegador, enquanto o Playwright valida a integração completa entre perfil, privacidade e chat.
+
 ## Tecnologias utilizadas
 
 - HTML5, CSS3 e JavaScript com módulos ES.
@@ -41,6 +55,17 @@ Em seguida, execute:
 ```bash
 npm run dev
 ```
+
+## Testes
+
+```bash
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+O teste de interface configura a privacidade e o perfil do visitante antes de validar uma orientação do motor local.
 
 ## Implantação
 

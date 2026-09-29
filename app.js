@@ -10,6 +10,22 @@
     sanitizeProfile,
     resolveVisitorId,
   } = window.FitnessProfileManager;
+  const {
+    normalize,
+    parseDurationMinutes,
+    browserLanguage,
+    detectLanguage,
+    canonicalizeForRouting,
+    detectSport,
+  } = window.FitnessConversationUtils;
+  const {
+    servingFor,
+    splitFoods,
+    foodQuantities,
+    mealTotals,
+    foodTotals,
+    formatGramMeal,
+  } = window.FitnessFoodPlanUtils;
 
   let uiLanguage = readUiLanguage() || browserLanguage();
   if (!["pt", "en"].includes(uiLanguage)) uiLanguage = "en";
@@ -30,6 +46,7 @@
     deleteData: document.querySelector("#deleteDataButton"),
     close: document.querySelector("#closeChat"),
     reopen: document.querySelector("#reopenChat"),
+    closedState: document.querySelector("#closedState"),
     languageGate: document.querySelector("#languageGate"),
     languageButton: document.querySelector("#languageButton"),
     languageChoices: [...document.querySelectorAll("[data-language]")],
@@ -218,25 +235,6 @@
     els.send.textContent = value ? "..." : localized({ pt:"Enviar", en:"Send", es:"Enviar", de:"Senden" }, state.lastLanguage || "en");
   }
 
-  function normalize(text) {
-    return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-
-  function parseDurationMinutes(text) {
-    const t = normalize(String(text || ""));
-    const minutes = t.match(/\b(15|20|25|30|35|40|45|50|60|75|90|120)\s*(?:min|minuto|minutos)\b/);
-    if (minutes) return Number(minutes[1]);
-    const hours = t.match(/\b(uma|1|1[.,]5|2)\s*(?:h|hora|horas)\b(?:\s*e\s*(15|30|45)\s*(?:min|minutos)?)?/);
-    if (!hours) return null;
-    const base = hours[1] === "uma" ? 1 : Number(hours[1].replace(",", "."));
-    return Math.min(120, Math.round(base * 60 + Number(hours[2] || 0)));
-  }
-
-  function browserLanguage() {
-    const code = String(navigator.language || "en").slice(0, 2).toLowerCase();
-    return ["pt", "en", "de", "es"].includes(code) ? code : "en";
-  }
-
   function applyInterfaceLanguage(language, { persist = true, replaceWelcome = true } = {}) {
     const lang = language === "pt" ? "pt" : "en";
     uiLanguage = lang;
@@ -322,66 +320,6 @@
     renderHistory();
     renderConsentCard();
     saveState();
-  }
-
-  function detectLanguage(text, fallback = browserLanguage()) {
-    const t = normalize(text);
-    if (/answer (only )?in english|respond (only )?in english|responda (apenas )?em ingles/.test(t)) return "en";
-    if (/responda (apenas )?em portugues|fale (apenas )?em portugues/.test(t)) return "pt";
-    if (/responde? (?:solo )?en espanol|habla (?:solo )?en espanol/.test(t)) return "es";
-    if (/antworte? (?:nur )?auf deutsch|sprich (?:nur )?deutsch/.test(t)) return "de";
-    const scores = {
-      pt: (t.match(/\b(quanto|quanta|quantos|quantas|como|tenho|tem|preciso|treino|dias|massa|gordura|posso|sem|devo|proteina|perder|ganhar|voce|lembra|qual|idade|altura|peso|calorias|quero|emagrecer|trabalho|sentada|sedentario|sedentaria|feminino|feminina|masculino|masculina|mulher|homem|gere|monte|faca|pernas|peito|costas|bracos|ombros|hoje|exercicios|foto|fotos|imagem|imagens|exemplo|exemplos|meu|minha|melhorar|faz|sentido|antes|depois|estou|dor|vezes|semana|parou|beber|comer|agua|sono|recuperacao|estime|estima|estimar|calcule|calcular|informei|informe|informado|dados|agora|ainda|ja|consumir|diaria|diario|favor|pode|esses|estas|isso|outra|facil|descanso|lista|compras)\b/g) || []).length,
-      en: (t.match(/\b(how|what|when|where|which|need|want|workout|training|weight|height|age|calories|protein|female|male|sedentary|estimate|calculate|already|provided|data|daily|please|remember|create|make|another|option|meal|structure|shopping|list|only|minutes|without|equipment|easier|rest|days|images|improve|hydration|explain|during|split|four|weigh|have|light)\b/g) || []).length,
-      de: (t.match(/\b(wie|ich|muskeln|brauche|viel|trainiere|tagen|eiweiss|protein|gewicht|aufbauen|kalorien|berechnen|erstelle|einen|eine|andere|option|ernahrungsplan|trainingsplan|wochentlich|tage|woche|habe|nur|minuten|ohne|gerate|einfacher|lange|pause|bilder|flussigkeitszufuhr|verbessern|erklare|genauer|wahrend|mahlzeiten|wiege|keine|brustschmerzen|leichtes)\b/g) || []).length,
-      es: (t.match(/\b(cuanta|cuantas|como|tengo|necesito|entreno|entrenamiento|dias|semana|musculo|grasa|puedo|proteina|perder|ganar|calorias|calcular|datos|crea|haz|otra|opcion|estructura|alimentaria|compras|solo|minutos|sin|equipo|facil|descanso|imagenes|mejorar|hidratacion|explica|durante|divide|cuatro|comidas|peso|ligero)\b/g) || []).length
-    };
-    const highest = Math.max(...Object.values(scores));
-    if (highest === 0) return fallback;
-    const leaders = Object.keys(scores).filter(language => scores[language] === highest);
-    return leaders.includes(fallback) ? fallback : leaders[0];
-  }
-
-  function canonicalizeForRouting(text, language) {
-    let t = normalize(text);
-    if (language === "pt") return t;
-    const replacements = language === "en" ? [
-      [/\b(create|make|build|give me)\b/g, "monte"], [/\bweekly (workout|training) plan\b/g, "plano semanal de treino"],
-      [/\bmeal (structure|plan)\b/g, "estrutura alimentar"], [/\bvegetarian\b/g, "vegetariana"], [/\bvegan\b/g, "vegana"],
-      [/\banother (option|one)|a different option\b/g, "outra opcao"], [/\bwith more protein\b/g, "com mais proteina"],
-      [/\bhow many calories does (it|this) have\b/g, "quantas calorias tem"], [/\bshopping list\b/g, "lista de compras"],
-      [/\b(\d+) days per week\b/g, "$1 dias por semana"], [/\bi only have (\d+) minutes\b/g, "so tenho $1 minutos"],
-      [/\b(no|without) equipment\b/g, "sem equipamento"], [/\bmake it easier\b|\beasier\b/g, "mais facil"],
-      [/\bhow much rest\b/g, "quanto descanso"], [/\bdo you have images\b|\bimages\b/g, "tem imagens"],
-      [/\band on rest days\b/g, "e nos dias sem treino"], [/\bwithout whey\b/g, "sem whey"],
-      [/\bsplit it into four meals\b/g, "divida em quatro refeicoes"], [/\bexplain it better\b/g, "explique melhor"],
-      [/\band during (the )?(workout|training)\b/g, "e durante o treino"], [/\bhydration\b/g, "hidratacao"],
-      [/\bi weigh\b/g, "peso"], [/\bhow much protein do i need\b/g, "quanta proteina preciso"]
-    ] : language === "es" ? [
-      [/\b(crea|haz|genera|dame)\b/g, "monte"], [/\bplan semanal de entrenamiento\b/g, "plano semanal de treino"],
-      [/\bestructura alimentaria\b|\bplan de comidas\b/g, "estrutura alimentar"], [/\bvegetariana?\b/g, "vegetariana"], [/\bvegana?\b/g, "vegana"],
-      [/\botra opcion\b|\botra alternativa\b/g, "outra opcao"], [/\bcon mas proteina\b/g, "com mais proteina"],
-      [/\bcuantas calorias tiene\b/g, "quantas calorias tem"], [/\blista de compras\b/g, "lista de compras"],
-      [/\b(\d+) dias por semana\b/g, "$1 dias por semana"], [/\bsolo tengo (\d+) minutos\b/g, "so tenho $1 minutos"],
-      [/\bsin equipo\b/g, "sem equipamento"], [/\bmas facil\b/g, "mais facil"], [/\bcuanto descanso\b/g, "quanto descanso"],
-      [/\btienes imagenes\b|\bimagenes\b/g, "tem imagens"], [/\by en los dias de descanso\b/g, "e nos dias sem treino"],
-      [/\bsin whey\b/g, "sem whey"], [/\bdividelo en cuatro comidas\b/g, "divida em quatro refeicoes"],
-      [/\bexplicalo mejor\b/g, "explique melhor"], [/\by durante el entrenamiento\b/g, "e durante o treino"],
-      [/\bhidratacion\b/g, "hidratacao"], [/\bcuanta proteina necesito\b/g, "quanta proteina preciso"]
-    ] : [
-      [/\b(erstelle|mach|gib mir)\b/g, "monte"], [/\bwochentlichen trainingsplan\b|\bwochenplan\b/g, "plano semanal de treino"],
-      [/\bvegetarischen ernahrungsplan\b|\bernahrungsplan\b/g, "estrutura alimentar vegetariana"], [/\bvegane?n?\b/g, "vegana"],
-      [/\beine andere option\b|\bnoch eine option\b/g, "outra opcao"], [/\bmit mehr protein\b/g, "com mais proteina"],
-      [/\bwie viele kalorien hat (er|es|dies)\b/g, "quantas calorias tem"], [/\beinkaufsliste\b/g, "lista de compras"],
-      [/\b(\d+) tage pro woche\b/g, "$1 dias por semana"], [/\bich habe nur (\d+) minuten\b/g, "so tenho $1 minutos"],
-      [/\bohne gerate\b/g, "sem equipamento"], [/\beinfacher\b/g, "mais facil"], [/\bwie lange pause\b/g, "quanto descanso"],
-      [/\bhast du bilder\b|\bbilder\b/g, "tem imagens"], [/\bund an trainingsfreien tagen\b/g, "e nos dias sem treino"],
-      [/\bohne whey\b/g, "sem whey"], [/\bteile es auf vier mahlzeiten auf\b/g, "divida em quatro refeicoes"],
-      [/\berklare es genauer\b/g, "explique melhor"], [/\bund wahrend des trainings\b/g, "e durante o treino"],
-      [/\bflussigkeitszufuhr\b/g, "hidratacao"], [/\bwie viel protein brauche ich\b/g, "quanta proteina preciso"]
-    ];
-    replacements.forEach(([pattern, replacement]) => { t = t.replace(pattern, replacement); });
-    return t.replace(/\s+/g, " ").trim();
   }
 
   function extractProfile(text) {
@@ -1311,47 +1249,6 @@
     return { text, suppressFollowUp: true };
   }
 
-  const foodServingTable = {
-    omelete: { grams: 120, kcal: 180, protein: 16 }, "pao integral": { grams: 50, kcal: 125, protein: 5 }, mamao: { grams: 150, kcal: 60, protein: 1 },
-    iogurte: { grams: 170, kcal: 110, protein: 9 }, aveia: { grams: 40, kcal: 150, protein: 5 }, banana: { grams: 100, kcal: 90, protein: 1 },
-    arroz: { grams: 120, kcal: 155, protein: 3 }, feijao: { grams: 100, kcal: 75, protein: 5 }, frango: { grams: 120, kcal: 200, protein: 37 },
-    salada: { grams: 150, kcal: 50, protein: 2 }, batata: { grams: 180, kcal: 140, protein: 3 }, peixe: { grams: 140, kcal: 210, protein: 30 },
-    legumes: { grams: 160, kcal: 70, protein: 3 }, tofu: { grams: 180, kcal: 215, protein: 23 }, fruta: { grams: 130, kcal: 70, protein: 1 },
-    castanhas: { grams: 20, kcal: 120, protein: 4 }, vegetais: { grams: 180, kcal: 80, protein: 4 }, carboidrato: { grams: 120, kcal: 160, protein: 3 }, proteina: { grams: 120, kcal: 190, protein: 28 }
-  };
-
-  function servingFor(name) {
-    const key = normalize(name);
-    const match = Object.keys(foodServingTable).find(candidate => key.includes(candidate));
-    return { name: name.trim(), ...(foodServingTable[match] || { grams: 100, kcal: 120, protein: 5 }) };
-  }
-
-  function splitFoods(value) {
-    return String(value || "").replace(/\.$/, "").split(/,|\s+e\s+/i).map(part => part.trim()).filter(Boolean).map(servingFor);
-  }
-
-  function foodQuantities(artifact) {
-    if (artifact.quantities) return artifact.quantities;
-    return {
-      breakfast: splitFoods(artifact.breakfast),
-      mainMeal: splitFoods(artifact.mainMeal),
-      snack: splitFoods(artifact.snack),
-      otherMeal: [servingFor("vegetais"), servingFor("proteína"), servingFor("carboidrato")]
-    };
-  }
-
-  function mealTotals(items) {
-    return items.reduce((total, item) => ({ kcal: total.kcal + item.kcal, protein: total.protein + item.protein }), { kcal: 0, protein: 0 });
-  }
-
-  function foodTotals(quantities) {
-    return Object.values(quantities).flat().reduce((total, item) => ({ kcal: total.kcal + item.kcal, protein: total.protein + item.protein }), { kcal: 0, protein: 0 });
-  }
-
-  function formatGramMeal(label, items) {
-    return `• ${label}: ${items.map(item => `${item.name} ${item.grams} g`).join(", ")}`;
-  }
-
   function updateFoodArtifact(artifact, changes, action, text) {
     const updated = { ...artifact, ...changes };
     rememberArtifact(updated, { action, text });
@@ -1634,17 +1531,6 @@
     if (/\b(antes do jogo|encaixo antes|na vespera)\b/.test(t)) return "Faça a sessão principal de velocidade 48–72 horas antes do jogo. Na véspera, mantenha somente 10–20 minutos leves de mobilidade, técnica com bola e poucas acelerações, sem fadiga residual.";
     if (/\b(depois do jogo|apos o jogo|e depois)\b/.test(t)) return "Depois do jogo, priorize hidratação, refeição com carboidrato e proteína, sono e atividade leve. Aguarde a recuperação da dor e da fadiga antes de repetir velocidade ou força intensa.";
     return null;
-  }
-
-  function detectSport(text) {
-    const t = normalize(text);
-    const sports = [
-      ["football", /\b(futebol|football|soccer)\b/], ["basketball", /\b(basquete|basketball)\b/],
-      ["volleyball", /\b(volei|voleibol|volleyball)\b/], ["swimming", /\b(natacao|nadar|swimming)\b/],
-      ["tennis", /\b(tenis|tennis)\b/], ["cycling", /\b(ciclismo|bicicleta|cycling)\b/],
-      ["running", /\b(corrida|correr|running)\b/]
-    ];
-    return sports.find(([, pattern]) => pattern.test(t))?.[0] || null;
   }
 
   function sportSessionAnswer(sport, minutes = 45, focus = "geral", variation = 0) {
@@ -2790,10 +2676,12 @@
   els.close.addEventListener("click", () => {
     els.modal.hidden = true;
     els.reopen.hidden = false;
+    els.closedState.hidden = false;
   });
   els.reopen.addEventListener("click", () => {
     els.modal.hidden = false;
     els.reopen.hidden = true;
+    els.closedState.hidden = true;
     els.input.focus();
     scrollToLatest(false);
   });
