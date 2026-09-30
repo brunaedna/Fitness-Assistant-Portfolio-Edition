@@ -10,9 +10,13 @@
       return response.json();
     }
     async generateResponse(payload) {
+      const requestId = crypto.randomUUID();
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
         body: JSON.stringify(payload)
       });
       if (!response.ok) {
@@ -20,6 +24,8 @@
         const error = new Error(details.error || "External provider unavailable");
         error.status = response.status;
         error.fallback = Boolean(details.fallback);
+        error.code = details.code;
+        error.requestId = details.requestId || response.headers.get("X-Fitness-Request-Id") || requestId;
         throw error;
       }
       return response.json();
